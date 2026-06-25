@@ -27,6 +27,7 @@
   <div id="root"></div>
 
   <!-- real Set 17 data (Korean official names + artwork) -->
+  <script>window.AXIS_API_BASE="https://metallic-shops-academic-obtained.trycloudflare.com";</script>
   <script src="src/data/tft-data.js"></script>
   <!-- full Set 17 god blessings (researched: MetaTFT/lolchess/mobalytics) -->
   <script src="src/data/gods-curated.js"></script>
@@ -126,6 +127,24 @@ function useAsync(fn, deps) {
     return () => { alive = false; };
   }, deps || []); // eslint-disable-line
   return state;
+}
+
+/* ---- API 호출 헬퍼 ----
+   같은 출처(터널 서빙)면 상대경로 + 쿠키 인증, 원격(GitHub Pages → PC 백엔드)이면
+   window.AXIS_API_BASE 절대주소 + X-Axis-Key 헤더 인증. 비밀키는 URL ?k= 또는 localStorage('axis_key'). */
+const API_BASE = (typeof window !== 'undefined' && window.AXIS_API_BASE) ? String(window.AXIS_API_BASE).replace(/\/+$/, '') : '';
+const API_KEY = (function () {
+  try {
+    const u = new URLSearchParams(location.search).get('k');
+    if (u) { try { localStorage.setItem('axis_key', u); } catch (e) {} return u; }
+    try { return localStorage.getItem('axis_key') || ''; } catch (e) { return ''; }
+  } catch (e) { return ''; }
+})();
+function apiFetch(path, opts) {
+  opts = opts || {};
+  const headers = Object.assign({}, opts.headers || {});
+  if (API_KEY) headers['X-Axis-Key'] = API_KEY;
+  return fetch(API_BASE + path, Object.assign({}, opts, { headers }));
 }
 
 /* ---- DataSource adapter (the architecture's hard requirement) ----
@@ -1051,7 +1070,7 @@ function adaptRealProfile(rp, source) {
 }
 function loadProfile(region, riotId) {
   const tryReal = (typeof fetch !== 'undefined')
-    ? fetch('/api/profile?region=' + encodeURIComponent(region) + '&riotId=' + encodeURIComponent(riotId), { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+    ? apiFetch('/api/profile?region=' + encodeURIComponent(region) + '&riotId=' + encodeURIComponent(riotId), { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
     : Promise.resolve(null);
   return tryReal.then((j) => {
     if (j && j.profile && (j.profile.matches || []).length) { const p = adaptRealProfile(j.profile, j.source); return { ...p, report: analyzeProfile(p) }; }
@@ -1070,7 +1089,7 @@ function aiCoachLive(state) {
     lobby: (state.lobby || []).map((o) => ({ name: o.name, threat: Math.round((o.threat || 0) * 100), contestMine: !!o.contestMine })),
     comp: state.comp || null,
   };
-  return fetch('/api/coach', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+  return apiFetch('/api/coach', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
     .then((r) => (r.ok ? r.json() : null)).then((j) => (j && j.advice) ? { ...j.advice, model: j.model } : null).catch(() => null);
 }
 
@@ -1085,14 +1104,14 @@ function aiDiagnoseProfile(profile) {
       traits: (m.traits || []).map((t) => ({ name: t.name, num: t.num })),
     })),
   };
-  return fetch('/api/diagnose', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+  return apiFetch('/api/diagnose', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
     .then((r) => (r.ok ? r.json() : null)).then((j) => (j && j.diag) ? j.diag : null).catch(() => null);
 }
 
 /* real ladder leaderboard via dev proxy; falls back to deterministic mock */
 function loadLeaderboard(region) {
   const tryReal = (typeof fetch !== 'undefined')
-    ? fetch('/api/leaderboard?region=' + encodeURIComponent(region) + '&limit=40', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+    ? apiFetch('/api/leaderboard?region=' + encodeURIComponent(region) + '&limit=40', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
     : Promise.resolve(null);
   return tryReal.then((j) => {
     if (j && j.players && j.players.length) {
@@ -3992,7 +4011,7 @@ function LiveOverlay() {
     };
     const rec = r ? { top4: r.top4Est, win: r.winVsAvg, place: +r.expectedPlacement.toFixed(1), move: r.top.text, why: r.top.why, macro: r.macro && r.macro.action } : null;
     if (requestAI) setAiLoading(true);
-    fetch('/api/live', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ state, rec, requestAI }) })
+    apiFetch('/api/live', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ state, rec, requestAI }) })
       .then((res) => (res.ok ? res.json() : null)).then((j) => {
         if (j && j.ai) { setAi({ ...j.ai, model: j.model }); }
         else if (requestAI && j && j.aiErr) { setAi({ _err: j.aiErr }); }
@@ -4187,7 +4206,7 @@ function LivePage() {
     let alive = true;
     const tick = () => {
       if (typeof fetch === 'undefined') { setErr(true); return; }
-      fetch('/api/live', { cache: 'no-store' })
+      apiFetch('/api/live', { cache: 'no-store' })
         .then((r) => (r.ok ? r.json() : null))
         .then((j) => { if (!alive) return; if (j) { setLive(j); setErr(false); } else setErr(true); })
         .catch(() => { if (alive) setErr(true); });
