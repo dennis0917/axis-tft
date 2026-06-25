@@ -1,0 +1,13 @@
+{
+  "name": "차원전술 · AXIS — TFT 코칭 동반자",
+  "short_name": "차원전술",
+  "description": "WHAT이 아니라 WHY까지. 실시간으로 코칭하는 TFT 전략 동반자. 무광고·무설치.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0B0F1A",
+  "theme_color": "#6366F1",
+  "lang": "ko",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
