@@ -368,6 +368,8 @@ function genAugStats(a) {
 }
 const AUG_STATS = {};
 RAW.augments.forEach((a) => { AUG_STATS[a.name] = genAugStats(a); });
+/* 특성(트레잇)별 실측 성과 (MetaTFT /traits) — { 특성명: {avg, top4, pick} } */
+const TRAIT_STATS = (REAL_STATS.traitStats) || {};
 
 /* ---- 신(神) + 가호(은총) (Set 17 우주의 신들) ----
    Full blessing list from research (window.TFT_GODS_CURATED) merged with
@@ -478,7 +480,7 @@ function realPlaystyle(deck) {
   const p = deck.playstyle || '';
   if (/1코|1\s*코스트|1코스트/.test(p)) return PLAYSTYLES[3]; // 1코 리롤
   if (/리롤|슬로우롤|하이퍼롤|2코|3코|4코|저코/.test(p)) return PLAYSTYLES[2]; // 리롤
-  if (/패스트\s*8|풀\s*8|8렙 직행/.test(p)) return PLAYSTYLES[0]; // 8렙 직행
+  if (/패스트\s*[89]|풀\s*[89]|[89]\s*렙\s*직행/.test(p)) return PLAYSTYLES[0]; // 8/9렙 직행
   return PLAYSTYLES[1]; // 정석
 }
 
@@ -848,7 +850,8 @@ function liveRecommend(state) {
     const c = s.champ, cs = CHAMP_STATS[c.key], owned = onBoard[c.key] || 0;
     // 레벨별 상점 등장 확률(ROLL_ODDS) — 이 레벨에 절대 안 나오는 코스트가 잡히면 오인식이므로 추천에서 제외(룰 정확성)
     const _lvlOdds = ROLL_ODDS[Math.max(4, Math.min(10, level))];
-    if (_lvlOdds && (_lvlOdds[c.cost - 1] || 0) === 0) return null;
+    const _ci = c.cost - 1;
+    if (_lvlOdds && _ci >= 0 && _ci <= 4 && _lvlOdds[_ci] === 0) return null;
     let hyp = baseArr.map((u) => ({ ...u }));
     const ex = hyp.find((u) => u.champ.key === c.key);
     if (ex) ex.star = Math.min(3, (ex.star || 1) + (owned >= 2 ? 1 : 0)); else hyp = [...hyp, { champ: c, star: 1, items: [], row: isFront(c) ? 3 : 0 }];
@@ -2098,6 +2101,7 @@ function MetaPage() {
             const hay = [c.name, c.theme, c.carry && c.carry.name, c.secondCarry && c.secondCarry.name]
               .concat((c.core || []).map((u) => u.name))
               .concat((c.traits || []).map((t) => t.name))
+              .concat((c.wantTraits || []).map(String))
               .filter(Boolean).join(' ').toLowerCase();
             return ql.split(/\s+/).every((tok) => hay.includes(tok));
           });
@@ -3524,7 +3528,7 @@ function ProfileView({ region, riotId }) {
                                 <div style={{ padding: '6px 4px 10px' }}>
                                   <div className="row between" style={{ marginBottom: 6 }}>
                                     <span className="muted" style={{ fontSize: 11 }}>최종 보드 (실제) · 레벨 {m.level || '—'}{m.dmg != null ? ` · 가한 피해 ${fmt.int(m.dmg)}` : ''}</span>
-                                    <div className="row" style={{ gap: 4 }}>{(m.augments || []).map((a, ai) => a.img ? <ItemImg key={ai} item={a} size={20} /> : <span key={ai} className="chip" style={{ height: 18, fontSize: 9 }}>{a.name}</span>)}</div>
+                                    <div className="row wrap" style={{ gap: 4 }}>{(m.augments || []).map((a, ai) => a.img ? <ItemImg key={ai} item={a} size={20} /> : <span key={ai} className="chip" style={{ height: 18, fontSize: 9 }}>{a.name}</span>)}</div>
                                   </div>
                                   <div className="row wrap" style={{ gap: 5 }}>
                                     {m.units.map((u, ui) => <ChampIcon key={ui} champ={{ name: u.name, cost: u.cost, img: u.img }} size={44} star={u.star} items={u.items} />)}
@@ -3755,6 +3759,13 @@ function TraitsPage() {
               </div>
               <span className="chip">{t.members.length}챔피언</span>
             </div>
+            {TRAIT_STATS[t.name] && (
+              <div className="row" style={{ gap: 10, marginBottom: 9 }}>
+                <span className="muted" style={{ fontSize: 11 }}>평균 <b className="tnum" style={{ color: 'var(--text-primary)' }}>{fmt.place(TRAIT_STATS[t.name].avg)}</b></span>
+                <span className="muted" style={{ fontSize: 11 }}>순방 <b className="tnum" style={{ color: 'var(--pos)' }}>{fmt.pct(TRAIT_STATS[t.name].top4, 0)}</b></span>
+                <span className="muted" style={{ fontSize: 11 }}>픽률 <b className="tnum">{fmt.pct(TRAIT_STATS[t.name].pick, 1)}</b></span>
+              </div>
+            )}
             {t.breakpoints && t.breakpoints.length > 0 && (
               <div className="row wrap" style={{ gap: 6, marginBottom: 10 }}>
                 {t.breakpoints.map((bp, i) => {
