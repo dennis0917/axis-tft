@@ -2066,6 +2066,7 @@ function MetaPage() {
   const [style, setStyle] = useState('all');
   const [rank, setRank] = useState('master');
   const [sort, setSort] = useState('avg');
+  const [q, setQ] = useState('');
 
   return (
     <div className="page">
@@ -2073,6 +2074,9 @@ function MetaPage() {
         right={<Seg options={[{ v: 'master', label: '마스터+' }, { v: 'diamond', label: '다이아+' }, { v: 'all', label: '전체' }]} value={rank} onChange={setRank} />} />
 
       <DataNote />
+      <input type="text" value={q} onChange={(e) => setQ(e.target.value)}
+        placeholder="🔍 덱 · 챔피언 · 특성 검색 (예: 자야 / 별돌보미 / N.O.V.A.)"
+        style={{ width: '100%', height: 42, marginBottom: 12, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
       <div className="row between wrap" style={{ marginBottom: 14, gap: 10 }}>
         <Seg options={[{ v: 'all', label: '전체' }, { v: 'std', label: '정석/패스트8' }, { v: 'reroll', label: '리롤' }]} value={style} onChange={setStyle} />
         <div className="row" style={{ gap: 8 }}>
@@ -2083,13 +2087,22 @@ function MetaPage() {
 
       <Async state={comps} onRetry={() => location.reload()}>
         {(list) => {
+          const ql = q.trim().toLowerCase();
           let rows = list.filter((c) => style === 'all'
             || (style === 'std' && (c.playstyle.key === 'fast8' || c.playstyle.key === 'standard'))
             || (style === 'reroll' && (c.playstyle.key === 'reroll' || c.playstyle.key === 'hyperroll')));
+          if (ql) rows = rows.filter((c) => {
+            const hay = [c.name, c.theme, c.carry && c.carry.name, c.secondCarry && c.secondCarry.name]
+              .concat((c.core || []).map((u) => u.name))
+              .concat((c.traits || []).map((t) => t.name))
+              .filter(Boolean).join(' ').toLowerCase();
+            return ql.split(/\s+/).every((tok) => hay.includes(tok));
+          });
           rows = [...rows].sort((a, b) => sort === 'avg' ? a.avg - b.avg : sort === 'top4' ? b.top4 - a.top4 : b.pickRate - a.pickRate);
           // group by tier
           const byTier = {};
           rows.forEach((c) => (byTier[c.tier] = byTier[c.tier] || []).push(c));
+          if (!rows.length) return <div className="empty" style={{ padding: '32px 16px', textAlign: 'center' }}><div className="muted">검색 결과가 없어요{q ? ` — "${q}"` : ''}. 챔피언·특성·덱 이름으로 검색해 보세요.</div></div>;
           return (
             <div className="grid" style={{ gap: 16 }}>
               {TIER_ORDER.filter((t) => byTier[t]).map((t) => (
