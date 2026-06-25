@@ -459,7 +459,11 @@ function buildComp(theme, idx) {
   // positioning: assign hexes (rows 0=back .. 3=front) ; carry back corner
   const positions = assignPositions(core, carry, seed);
   // augments fit
-  const augFit = RAW.augments.filter((a) => AUG_STATS[a.name].avg < 4.45).sort((a, b) => AUG_STATS[a.name].avg - AUG_STATS[b.name].avg).slice(0, 4 + (idx % 3));
+  const _ctraits = activeTraits(core).filter((t) => t.on).map((t) => t.name);
+  const _cfits = (a) => _ctraits.some((t) => t && (a.name.includes(t) || (t.length >= 2 && a.name.includes(t.slice(0, 2)))));
+  const augFit = RAW.augments.filter((a) => AUG_STATS[a.name] && AUG_STATS[a.name].avg < 4.6)
+    .map((a) => { let s = 4.6 - AUG_STATS[a.name].avg; if (_cfits(a)) s += 1.8; if (a.kind === '특성' && !_cfits(a)) s -= 5; return { a, s }; })
+    .filter((x) => x.s > 0.05).sort((x, y) => y.s - x.s).slice(0, 5).map((x) => x.a);
   const carryStar = carryBis ? carryBis.star : ((playstyle.key === 'reroll' || playstyle.key === 'hyperroll') ? 3 : 2);
   // units that must hit 3-star: carry (if 3★ target) + low-cost cores whose BiS says 3★
   const threeStar = core.filter((c) => {
@@ -547,8 +551,11 @@ function buildRealComp(deck, idx) {
     reroll ? '같은 리롤 경합 시 한 명은 무너짐 — 정찰 필수' : '광역 CC 조합엔 산개 배치로 대응',
   ];
   const positions = assignPositions(core, carry, seed);
-  const augFit = RAW.augments.filter((a) => AUG_STATS[a.name] && AUG_STATS[a.name].avg < 4.45)
-    .sort((a, b) => AUG_STATS[a.name].avg - AUG_STATS[b.name].avg).slice(0, 4 + (idx % 3));
+  const _deckTraits = (traits || []).map((t) => t.name).concat((deck.traitsParsed || []).map((t) => t.name));
+  const _afits = (a) => _deckTraits.some((t) => t && (a.name.includes(t) || (t.length >= 2 && a.name.includes(t.slice(0, 2)))));
+  const augFit = RAW.augments.filter((a) => AUG_STATS[a.name] && AUG_STATS[a.name].avg < 4.6)
+    .map((a) => { let s = 4.6 - AUG_STATS[a.name].avg; if (_afits(a)) s += 1.8; if (a.kind === '특성' && !_afits(a)) s -= 5; return { a, s }; })
+    .filter((x) => x.s > 0.05).sort((x, y) => y.s - x.s).slice(0, 5).map((x) => x.a);
 
   return {
     id: deck.id || ('rc' + idx), rank: deck.rank, name: deck.name, theme: (deck.traitsParsed && deck.traitsParsed[0] && deck.traitsParsed[0].name) || '',
@@ -1762,10 +1769,11 @@ function CompDetail({ comp }) {
             </div>
             <div className="muted" style={{ fontSize: 11, marginTop: 10 }}>→ {comp.carry.name}에게 정템으로. 애매하면 들고 있지 말고 슬램.</div>
           </Card>
-          <Card title="추천 증강체" icon="augments">
+          <Card title="추천 증강체 (덱 시너지 기반)" icon="augments">
             <div className="row wrap" style={{ gap: 6 }}>
-              {comp.augments.slice(0, 4).map((a) => <span key={a.name} className="chip" title={a.desc}>{a.kind === '은총' ? '🌟' : a.kind === '특성' ? '🔗' : '◆'} {a.name}</span>)}
+              {comp.augments.slice(0, 5).map((a) => <span key={a.name} className="chip" title={a.desc}>{a.kind === '은총' ? '🌟' : a.kind === '특성' ? '🔗' : '◆'} {a.name}</span>)}
             </div>
+            <div className="muted" style={{ fontSize: 10.5, marginTop: 8 }}>※ MetaTFT가 덱별 증강 통계를 공개 API로 제공하지 않아, 이 덱의 <b>특성 시너지 + 전체 증강 티어</b>로 추천합니다(덱별 실측 아님).</div>
           </Card>
         </div>
       </div>
@@ -3977,6 +3985,7 @@ function LiveOverlay() {
   const atlasRef = useRef(null); const timerRef = useRef(null); const pipRef = useRef(null);
   const dbgRef = useRef(null);
   const augAtlasRef = useRef(null);
+  const lastAugsRef = useRef(null); // 마지막으로 인식한 제시 증강 3개 → AI 코치에 전달
   const augRectRef = useRef(augRect); augRectRef.current = augRect;
   const rectRef = useRef(rect); rectRef.current = rect;
   const shopRectRef = useRef(shopRect); shopRectRef.current = shopRect;
@@ -4086,6 +4095,7 @@ function LiveOverlay() {
       stage: ctx.stage, level: ctx.lvl, gold: ctx.gold, hp: ctx.hp,
       board: detected.map((u) => u.champ.name),
       traits, winRate: r ? r.winVsAvg : null,
+      offeredAugs: lastAugsRef.current,
       nextMove: r ? (r.top.type === 'buy' ? '구매: ' : '') + r.top.text : null,
     };
     const rec = r ? { top4: r.top4Est, win: r.winVsAvg, place: +r.expectedPlacement.toFixed(1), move: r.top.text, why: r.top.why, macro: r.macro && r.macro.action } : null;
@@ -4135,6 +4145,7 @@ function LiveOverlay() {
       }
       const advice = augmentAdvice(detected, board);
       const reroll = advice.length > 0 && advice.every((a) => (a.avg || 4.6) >= 4.55);
+      lastAugsRef.current = detected.length ? detected : null;
       setAugResult({ detected, advice, reroll, max: +maxSeen.toFixed(2), atlas: atlas.length });
       setStatus(detected.length ? `증강 ${detected.length}개 인식 — 추천 계산됨` : `증강 인식 실패 — 노란 박스를 증강 3장 카드에 맞추고 다시. (최고 매칭 ${maxSeen.toFixed(2)} / 임계 ${MATCH_MIN})`);
     } catch (e) { setStatus('증강 인식 오류: ' + (e.message || e)); }
@@ -4302,9 +4313,14 @@ function LiveOverlay() {
                 {ai && !ai._err && (
                   <div className="grid" style={{ gap: 4 }}>
                     {ai.read && <div className="muted" style={{ fontSize: 11, fontStyle: 'italic' }}>“{ai.read}”</div>}
+                    {ai.priority && <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--pos)', lineHeight: 1.35 }}>① {ai.priority}</div>}
                     <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.35 }}>{ai.move}</div>
+                    {ai.econ && <div style={{ fontSize: 11.5 }}><span style={{ color: 'var(--warn)', fontWeight: 700 }}>💰 경제</span> {ai.econ}</div>}
+                    {ai.augment && <div style={{ fontSize: 11.5 }}><span style={{ color: 'var(--indigo-400)', fontWeight: 700 }}>🎴 증강</span> {ai.augment}</div>}
+                    {ai.position && <div style={{ fontSize: 11.5 }}><span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>📍 배치</span> {ai.position}</div>}
                     {ai.why && <div className="muted" style={{ fontSize: 11, lineHeight: 1.5 }}>{ai.why}</div>}
                     {ai.risk && <div style={{ fontSize: 11, color: 'var(--warn)' }}>⚠ {ai.risk}</div>}
+                    {ai.alt && <div className="muted" style={{ fontSize: 11 }}>↪ 안 풀리면: {ai.alt}</div>}
                   </div>
                 )}
               </div>
