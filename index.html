@@ -4,13 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0B0F1A" />
-  <meta name="description" content="차원전술(AXIS) — WHAT이 아니라 WHY까지. 실시간으로 코칭하는 TFT 전략 동반자. 무광고·무설치." />
-  <title>차원전술 · AXIS — TFT 코칭 동반자</title>
+  <meta name="description" content="동토체스 — WHAT이 아니라 WHY까지. 실시간으로 코칭하는 TFT 전략 동반자. 무광고·무설치." />
+  <title>동토체스 — TFT 코칭 동반자</title>
   <!-- 모바일 '홈 화면에 추가'(PWA) — Android는 manifest, iOS는 apple-* 메타로 앱처럼 실행 -->
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="차원전술" />
+  <meta name="apple-mobile-web-app-title" content="동토체스" />
   <link rel="apple-touch-icon" href="icon.svg" />
   <link rel="manifest" href="manifest.json" />
   <link rel="preconnect" href="https://raw.communitydragon.org" crossorigin />
@@ -19,8 +19,8 @@
 <body>
   <div id="splash">
     <div style="display:flex;flex-direction:column;align-items:center">
-      <div class="s-logo">A</div>
-      <div class="s-text">차원전술 불러오는 중…</div>
+      <div class="s-logo">동</div>
+      <div class="s-text">동토체스 불러오는 중…</div>
       <div class="s-bar"><i></i></div>
     </div>
   </div>
@@ -398,7 +398,7 @@ GODS.forEach((g) => {
    Comp (team composition) generation around trait themes
    ============================================================ */
 const PLAYSTYLES = [
-  { key: 'fast8', tag: '패스트8', diff: 'normal' },
+  { key: 'fast8', tag: '8렙 직행', diff: 'normal' },
   { key: 'standard', tag: '정석', diff: 'easy' },
   { key: 'reroll', tag: '리롤', diff: 'hard' },
   { key: 'hyperroll', tag: '1코 리롤', diff: 'normal' },
@@ -478,7 +478,7 @@ function realPlaystyle(deck) {
   const p = deck.playstyle || '';
   if (/1코|1\s*코스트|1코스트/.test(p)) return PLAYSTYLES[3]; // 1코 리롤
   if (/리롤|슬로우롤|하이퍼롤|2코|3코|4코|저코/.test(p)) return PLAYSTYLES[2]; // 리롤
-  if (/패스트\s*8|풀\s*8|패스트8/.test(p)) return PLAYSTYLES[0]; // 패스트8
+  if (/패스트\s*8|풀\s*8|8렙 직행/.test(p)) return PLAYSTYLES[0]; // 8렙 직행
   return PLAYSTYLES[1]; // 정석
 }
 
@@ -786,8 +786,8 @@ function coachRecommend(state) {
     out.tags = ['안정화'];
   } else if (level <= 7 && stageNum >= 4 && gold >= 50 && hp > 45) {
     action = '레벨업 푸시 — 8렙 먼저 찍기';
-    why = `4스테이지에 50골드+체력 여유면 패스트8 타이밍. ${level}렙에서 리롤하지 말고 8렙 찍어서 고코스트 확률 올리고, 8렙에서 굴려야 캐리가 빨리 떠.`;
-    out.tags = ['패스트8', '레벨업'];
+    why = `4스테이지에 50골드+체력 여유면 8렙 직행 타이밍. ${level}렙에서 리롤하지 말고 8렙 찍어서 고코스트 확률 올리고, 8렙에서 굴려야 캐리가 빨리 떠.`;
+    out.tags = ['8렙 직행', '레벨업'];
   } else if (targetUnit && contest >= 2) {
     action = `리롤 자제 — ${targetUnit} 경합 ${contest}명, 갈아타기 고려`;
     why = `${targetUnit} 노리는 사람이 너 포함 ${contest + 1}명이면 잘 안 떠서 골드만 녹아. 같은 라인 다른 캐리로 갈아타거나, 한 명이 손절할 때까지 이자 챙기면서 대기.`;
@@ -846,6 +846,9 @@ function liveRecommend(state) {
   const buys = shop.map((s, slot) => {
     if (!s || !s.champ) return null;
     const c = s.champ, cs = CHAMP_STATS[c.key], owned = onBoard[c.key] || 0;
+    // 레벨별 상점 등장 확률(ROLL_ODDS) — 이 레벨에 절대 안 나오는 코스트가 잡히면 오인식이므로 추천에서 제외(룰 정확성)
+    const _lvlOdds = ROLL_ODDS[Math.max(4, Math.min(10, level))];
+    if (_lvlOdds && (_lvlOdds[c.cost - 1] || 0) === 0) return null;
     let hyp = baseArr.map((u) => ({ ...u }));
     const ex = hyp.find((u) => u.champ.key === c.key);
     if (ex) ex.star = Math.min(3, (ex.star || 1) + (owned >= 2 ? 1 : 0)); else hyp = [...hyp, { champ: c, star: 1, items: [], row: isFront(c) ? 3 : 0 }];
@@ -929,7 +932,7 @@ function analyzeProfile(profile) {
   if (rerollAvg != null && fast8Avg != null && rerollAvg - fast8Avg > 0.8) leaks.push({ type: '덱 선택', severity: 'high', placementCost: +Math.min(1.4, rerollAvg - fast8Avg).toFixed(1),
     title: '리롤덱에서 유독 약하다',
     evidence: `리롤덱 평균 ${rerollAvg.toFixed(1)}등 vs 그 외 ${fast8Avg.toFixed(1)}등. 리롤 운영(슬로우롤·타이밍)에서 손해.`,
-    fix: '확실히 열린 리롤만. 애매하면 정석/패스트8 위주로.',
+    fix: '확실히 열린 리롤만. 애매하면 정석/8렙 직행 위주로.',
     drill: '다음 10판 리롤 금지하고 평균 등수 비교.' });
   if (top4Rate < 0.45) leaks.push({ type: '고점 부족', severity: 'high', placementCost: +Math.min(1.6, (0.5 - top4Rate) * 4).toFixed(1),
     title: '순방 자체가 잘 안 나온다',
@@ -977,7 +980,7 @@ function genProfile(region, riotId) {
   const seed = 'prof' + region + name + tag;
   const r = rng(seed);
   const ranks = ['다이아몬드 II', '다이아몬드 I', '마스터', '그랜드마스터'];
-  const styles = ['정석', '패스트8', '리롤', '1코 리롤'];
+  const styles = ['정석', '8렙 직행', '리롤', '1코 리롤'];
   const matches = [];
   for (let i = 0; i < 22; i++) {
     const style = pick(seed + 'st' + i, styles);
@@ -1052,7 +1055,7 @@ function adaptRealProfile(rp, source) {
     const turn = inferTurning(m);
     return {
     id: m.id || 'rm' + i, placement: m.placement, queue: m.queue || 'ranked',
-    style: m.style || ((m.level || 8) >= 8 ? '패스트8' : '정석'),
+    style: m.style || ((m.level || 8) >= 8 ? '8렙 직행' : '정석'),
     comp: m.comp || (m.carry && m.carry.name) || '기타',
     units: m.units || [], traits: m.traits || [], augments: m.augments || [], level: m.level, goldLeft: m.goldLeft, dmg: m.dmg,
     lp: m.placement <= 4 ? (5 - m.placement) * 8 : -((m.placement - 4) * 9),
@@ -1493,10 +1496,10 @@ function Sidebar({ open, onClose }) {
   return (
     <aside className={cx('sidebar', open && 'open')}>
       <div className="brand">
-        <div className="brand-logo">A</div>
+        <div className="brand-logo">동</div>
         <div className="col">
-          <div className="brand-name">차원전술</div>
-          <div className="brand-sub">AXIS · TFT COMPANION</div>
+          <div className="brand-name">동토체스</div>
+          <div className="brand-sub">TFT 코칭 동반자</div>
         </div>
       </div>
       {NAV.map((g) => (
@@ -2078,7 +2081,7 @@ function MetaPage() {
         placeholder="🔍 덱 · 챔피언 · 특성 검색 (예: 자야 / 별돌보미 / N.O.V.A.)"
         style={{ width: '100%', height: 42, marginBottom: 12, padding: '0 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
       <div className="row between wrap" style={{ marginBottom: 14, gap: 10 }}>
-        <Seg options={[{ v: 'all', label: '전체' }, { v: 'std', label: '정석/패스트8' }, { v: 'reroll', label: '리롤' }]} value={style} onChange={setStyle} />
+        <Seg options={[{ v: 'all', label: '전체' }, { v: 'std', label: '정석/8렙 직행' }, { v: 'reroll', label: '리롤' }]} value={style} onChange={setStyle} />
         <div className="row" style={{ gap: 8 }}>
           <span className="muted" style={{ fontSize: 12 }}>정렬</span>
           <Seg options={[{ v: 'avg', label: '평균등수' }, { v: 'top4', label: '순방률' }, { v: 'pick', label: '픽률' }]} value={sort} onChange={setSort} />
@@ -2895,7 +2898,7 @@ function BuilderPage() {
    46-coach — live state-aware decision engine (hero feature #1)
    ============================================================ */
 const COACH_PRESETS = [
-  { label: '4-1 · 50골드 · 패스트8 각', s: { gold: 52, hp: 64, level: 7, stage: '4-1', contest: 1, boardStrength: 0.5, components: 1 } },
+  { label: '4-1 · 50골드 · 8렙 직행 각', s: { gold: 52, hp: 64, level: 7, stage: '4-1', contest: 1, boardStrength: 0.5, components: 1 } },
   { label: '저체력 위기 (HP 16)', s: { gold: 30, hp: 16, level: 7, stage: '4-3', contest: 1, boardStrength: 0.4, components: 2 } },
   { label: '리롤 경합 3명', s: { gold: 48, hp: 55, level: 6, stage: '4-1', contest: 2, boardStrength: 0.55, components: 2, targetKey: '' } },
   { label: '이자 라인 채우기', s: { gold: 34, hp: 78, level: 7, stage: '3-5', contest: 0, boardStrength: 0.6, components: 1 } },
@@ -3458,7 +3461,7 @@ function ProfileView({ region, riotId }) {
                     </Card>
                     <Card title="덱별 평균등수" icon="meta">
                       {rep.summary.rerollAvg != null && <div className="row between" style={{ padding: '7px 0', borderBottom: '1px solid var(--border)' }}><span style={{ fontSize: 13 }}>리롤덱</span><b className="tnum" style={{ color: rep.summary.rerollAvg > 5 ? 'var(--neg)' : 'var(--text-primary)' }}>{fmt.place(rep.summary.rerollAvg)}</b></div>}
-                      {rep.summary.fast8Avg != null && <div className="row between" style={{ padding: '7px 0', borderBottom: '1px solid var(--border)' }}><span style={{ fontSize: 13 }}>패스트8</span><b className="tnum" style={{ color: 'var(--pos)' }}>{fmt.place(rep.summary.fast8Avg)}</b></div>}
+                      {rep.summary.fast8Avg != null && <div className="row between" style={{ padding: '7px 0', borderBottom: '1px solid var(--border)' }}><span style={{ fontSize: 13 }}>8렙 직행</span><b className="tnum" style={{ color: 'var(--pos)' }}>{fmt.place(rep.summary.fast8Avg)}</b></div>}
                       <div className="row between" style={{ padding: '7px 0' }}><span style={{ fontSize: 13 }}>평균 8렙 도달</span><b className="tnum">{rep.summary.avgLevel8.toFixed(1)} 스테이지</b></div>
                     </Card>
                   </div>
@@ -4077,7 +4080,7 @@ function LiveOverlay() {
       const w = await window.documentPictureInPicture.requestWindow({ width: 260, height: 210 });
       pipRef.current = w;
       w.document.body.style.cssText = 'margin:0;font-family:Pretendard,sans-serif;background:#0B0F1A;color:#E8ECF4;';
-      w.document.body.innerHTML = '<div style="padding:13px"><div style="font-size:10.5px;color:#9AA5BC">차원전술 · 라이브</div><div style="display:flex;align-items:baseline;gap:8px;margin:4px 0"><span style="font-size:11px;color:#9AA5BC">순방확률</span><span id="pt4" style="font-size:34px;font-weight:800">--%</span></div><div style="height:9px;border-radius:6px;background:#1B2233;overflow:hidden"><div id="pb" style="height:100%;width:0;background:#34D399"></div></div><div style="margin-top:10px;font-size:10.5px;color:#9AA5BC">추천</div><div id="ptop" style="font-size:14px;font-weight:700;line-height:1.3;margin-top:2px">—</div><div id="pwhy" style="font-size:10.5px;color:#5E6A85;margin-top:3px"></div><div id="ps" style="font-size:10.5px;color:#5E6A85;margin-top:8px"></div></div>';
+      w.document.body.innerHTML = '<div style="padding:13px"><div style="font-size:10.5px;color:#9AA5BC">동토체스 · 라이브</div><div style="display:flex;align-items:baseline;gap:8px;margin:4px 0"><span style="font-size:11px;color:#9AA5BC">순방확률</span><span id="pt4" style="font-size:34px;font-weight:800">--%</span></div><div style="height:9px;border-radius:6px;background:#1B2233;overflow:hidden"><div id="pb" style="height:100%;width:0;background:#34D399"></div></div><div style="margin-top:10px;font-size:10.5px;color:#9AA5BC">추천</div><div id="ptop" style="font-size:14px;font-weight:700;line-height:1.3;margin-top:2px">—</div><div id="pwhy" style="font-size:10.5px;color:#5E6A85;margin-top:3px"></div><div id="ps" style="font-size:10.5px;color:#5E6A85;margin-top:8px"></div></div>';
       if (rec) updatePip(rec, board.length);
     } catch (e) { setStatus('PiP 창을 열 수 없어요: ' + (e.message || e)); }
   }

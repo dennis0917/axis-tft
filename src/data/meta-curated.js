@@ -38,7 +38,7 @@ window.TFT_META = [
    "avg": 3.63
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "우주 그루브 블리츠크랭크 중심 덱. 평균 3.63등으로 현 패치 S티어.",
   "traitsParsed": [
    {
@@ -194,7 +194,7 @@ window.TFT_META = [
    "avg": 3.95
   },
   "level": "10",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "정령족 바드 중심 덱. 평균 3.95등으로 현 패치 S티어.",
   "traitsParsed": [
    {
@@ -285,7 +285,7 @@ window.TFT_META = [
    "avg": 3.97
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "N.O.V.A. 블리츠크랭크 중심 덱. 평균 3.97등으로 현 패치 S티어.",
   "traitsParsed": [
    {
@@ -374,7 +374,7 @@ window.TFT_META = [
    "avg": 4.03
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "선봉대 바드 중심 덱. 평균 4.03등으로 현 패치 S티어.",
   "traitsParsed": [
    {
@@ -455,7 +455,7 @@ window.TFT_META = [
    "avg": 4.05
   },
   "level": "10",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "별돌보미 자야 중심 덱. 평균 4.05등으로 현 패치 S티어.",
   "traitsParsed": [
    {
@@ -530,7 +530,7 @@ window.TFT_META = [
    "avg": 4.05
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "암흑의 별 진 중심 덱. 평균 4.05등으로 현 패치 S티어.",
   "traitsParsed": [
    {
@@ -601,7 +601,7 @@ window.TFT_META = [
    "avg": 4.11
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "우주 그루브 블리츠크랭크 중심 덱. 평균 4.11등으로 현 패치 S티어.",
   "traitsParsed": [
    {
@@ -675,7 +675,7 @@ window.TFT_META = [
    "avg": 4.18
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "우주 그루브 블리츠크랭크 중심 덱. 평균 4.18등으로 현 패치 S티어.",
   "traitsParsed": [
    {
@@ -894,7 +894,7 @@ window.TFT_META = [
    "avg": 4.2
   },
   "level": "10",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "별돌보미 블리츠크랭크 중심 덱. 평균 4.20등으로 현 패치 S티어.",
   "traitsParsed": [
    {
@@ -991,7 +991,7 @@ window.TFT_META = [
    "avg": 4.2
   },
   "level": "10",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "별돌보미 블리츠크랭크 중심 덱. 평균 4.20등으로 현 패치 S티어.",
   "traitsParsed": [
    {
@@ -1157,7 +1157,7 @@ window.TFT_META = [
    "avg": 4.2
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "암흑의 별 블리츠크랭크 중심 덱. 평균 4.20등으로 현 패치 A티어.",
   "traitsParsed": [
    {
@@ -1298,7 +1298,7 @@ window.TFT_META = [
    "avg": 4.23
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "별돌보미 진 중심 덱. 평균 4.23등으로 현 패치 A티어.",
   "traitsParsed": [
    {
@@ -1442,7 +1442,7 @@ window.TFT_META = [
    "avg": 4.28
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "여행자 소나 중심 덱. 평균 4.28등으로 현 패치 A티어.",
   "traitsParsed": [
    {
@@ -1515,7 +1515,7 @@ window.TFT_META = [
    "avg": 4.29
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "싸움꾼 피오라 중심 덱. 평균 4.29등으로 현 패치 A티어.",
   "traitsParsed": [
    {
@@ -1594,7 +1594,7 @@ window.TFT_META = [
    "avg": 4.31
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "암흑의 별 진 중심 덱. 평균 4.31등으로 현 패치 A티어.",
   "traitsParsed": [
    {
@@ -1726,7 +1726,7 @@ window.TFT_META = [
    "avg": 4.32
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "싸움꾼 소나 중심 덱. 평균 4.32등으로 현 패치 A티어.",
   "traitsParsed": [
    {
@@ -1790,7 +1790,7 @@ window.TFT_META = [
    "avg": 4.32
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "싸움꾼 피오라 중심 덱. 평균 4.32등으로 현 패치 A티어.",
   "traitsParsed": [
    {
@@ -1928,7 +1928,7 @@ window.TFT_META = [
    "avg": 4.37
   },
   "level": "10",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "암흑의 별 진 중심 덱. 평균 4.37등으로 현 패치 A티어.",
   "traitsParsed": [
    {
@@ -2009,7 +2009,7 @@ window.TFT_META = [
    "avg": 4.4
   },
   "level": "10",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "선봉대 바드 중심 덱. 평균 4.40등으로 현 패치 A티어.",
   "traitsParsed": [
    {
@@ -2090,7 +2090,7 @@ window.TFT_META = [
    "avg": 4.41
   },
   "level": "11",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "정령족 바드 중심 덱. 평균 4.41등으로 현 패치 A티어.",
   "traitsParsed": [
    {
@@ -2177,7 +2177,7 @@ window.TFT_META = [
    "avg": 4.41
   },
   "level": "10",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "정령족 바드 중심 덱. 평균 4.41등으로 현 패치 A티어.",
   "traitsParsed": [
    {
@@ -2243,7 +2243,7 @@ window.TFT_META = [
    "avg": 4.42
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "암흑의 별 진 중심 덱. 평균 4.42등으로 현 패치 A티어.",
   "traitsParsed": [
    {
@@ -2383,7 +2383,7 @@ window.TFT_META = [
    "avg": 4.43
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "N.O.V.A. 쉔 중심 덱. 평균 4.43등으로 현 패치 A티어.",
   "traitsParsed": [
    {
@@ -2525,7 +2525,7 @@ window.TFT_META = [
    "avg": 4.44
   },
   "level": "11",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "길잡이 소나 중심 덱. 평균 4.44등으로 현 패치 A티어.",
   "traitsParsed": [
    {
@@ -3022,7 +3022,7 @@ window.TFT_META = [
    "avg": 4.54
   },
   "level": "10",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "정령족 바드 중심 덱. 평균 4.54등으로 현 패치 B티어.",
   "traitsParsed": [
    {
@@ -3105,7 +3105,7 @@ window.TFT_META = [
    "avg": 4.56
   },
   "level": "10",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "정령족 바드 중심 덱. 평균 4.56등으로 현 패치 B티어.",
   "traitsParsed": [
    {
@@ -3172,7 +3172,7 @@ window.TFT_META = [
    "avg": 4.56
   },
   "level": "11",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "별돌보미 바드 중심 덱. 평균 4.56등으로 현 패치 B티어.",
   "traitsParsed": [
    {
@@ -3236,7 +3236,7 @@ window.TFT_META = [
    "avg": 4.59
   },
   "level": "9",
-  "playstyle": "패스트8",
+  "playstyle": "8렙 직행",
   "why": "선봉대 바드 중심 덱. 평균 4.59등으로 현 패치 B티어.",
   "traitsParsed": [
    {

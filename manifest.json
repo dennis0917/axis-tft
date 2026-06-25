@@ -1,6 +1,6 @@
 {
-  "name": "차원전술 · AXIS — TFT 코칭 동반자",
-  "short_name": "차원전술",
+  "name": "동토체스 — TFT 코칭 동반자",
+  "short_name": "동토체스",
   "description": "WHAT이 아니라 WHY까지. 실시간으로 코칭하는 TFT 전략 동반자. 무광고·무설치.",
   "start_url": "./index.html",
   "display": "standalone",
