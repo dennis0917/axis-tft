@@ -3863,14 +3863,22 @@ function TraitDetail({ trait }) {
    Honest: 3D-model↔2D-icon matching is imperfect; detected board
    is shown & editable (click to remove) so you can confirm fast.
    ============================================================ */
-const ATLAS_N = 24; // canonical grayscale size
+const ATLAS_N = 28; // canonical template size (per channel)
+// 인식 임계값 — 화면의 '인식 진단(최고 매칭)' 숫자를 보고 조정 가능.
+const EMPTY_VAR = 70;       // 루마 분산 이 미만이면 빈 헥스로 간주
+const MATCH_MIN = 0.42;     // 채택 최소 NCC 점수
+const MATCH_MARGIN = 0.035; // 1등이 2등을 이 차이 이상 이겨야 채택(오인식 억제)
 
-function grayNorm(ctx, w, h) {
-  const d = ctx.getImageData(0, 0, w, h).data; const g = new Float32Array(w * h);
-  for (let i = 0, j = 0; i < d.length; i += 4, j++) g[j] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-  let mean = 0; for (let k = 0; k < g.length; k++) mean += g[k]; mean /= g.length;
-  let norm = 0; for (let k = 0; k < g.length; k++) { g[k] -= mean; norm += g[k] * g[k]; }
-  return { g, norm: Math.sqrt(norm) || 1, variance: norm / g.length };
+// 컬러(RGB) 특징 — 흑백 대비 챔피언 구분력이 크게 향상. 전체 평균차감 후 L2정규화 → NCC.
+function feat(ctx, w, h) {
+  const d = ctx.getImageData(0, 0, w, h).data; const n = w * h; const v = new Float32Array(n * 3);
+  let lmean = 0;
+  for (let p = 0, j = 0; p < d.length; p += 4, j++) { const r = d[p], gg = d[p + 1], b = d[p + 2]; v[j] = r; v[n + j] = gg; v[2 * n + j] = b; lmean += 0.299 * r + 0.587 * gg + 0.114 * b; }
+  lmean /= n;
+  let lvar = 0; for (let p = 0; p < d.length; p += 4) { const L = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2]; lvar += (L - lmean) * (L - lmean); } lvar /= n;
+  let mean = 0; for (let k = 0; k < v.length; k++) mean += v[k]; mean /= v.length;
+  let norm = 0; for (let k = 0; k < v.length; k++) { v[k] -= mean; norm += v[k] * v[k]; }
+  return { g: v, norm: Math.sqrt(norm) || 1, variance: lvar };
 }
 function ncc(a, b) { let dot = 0; const ag = a.g, bg = b.g, n = ag.length; for (let k = 0; k < n; k++) dot += ag[k] * bg[k]; return dot / (a.norm * b.norm); }
 
@@ -3882,7 +3890,7 @@ function buildAtlas(onProgress) {
   let done = 0;
   _atlasPromise = Promise.all(champs.map((c) => new Promise((res) => {
     const im = new Image(); im.crossOrigin = 'anonymous';
-    im.onload = () => { try { ctx.clearRect(0, 0, ATLAS_N, ATLAS_N); ctx.drawImage(im, im.width * 0.12, im.height * 0.05, im.width * 0.76, im.height * 0.76, 0, 0, ATLAS_N, ATLAS_N); const buf = grayNorm(ctx, ATLAS_N, ATLAS_N); res({ champ: c, buf }); } catch (e) { res(null); } finally { done++; onProgress && onProgress(done, champs.length); } };
+    im.onload = () => { try { ctx.clearRect(0, 0, ATLAS_N, ATLAS_N); ctx.drawImage(im, im.width * 0.12, im.height * 0.05, im.width * 0.76, im.height * 0.76, 0, 0, ATLAS_N, ATLAS_N); const buf = feat(ctx, ATLAS_N, ATLAS_N); res({ champ: c, buf }); } catch (e) { res(null); } finally { done++; onProgress && onProgress(done, champs.length); } };
     im.onerror = () => { done++; onProgress && onProgress(done, champs.length); res(null); };
     im.src = c.img.square;
   }))).then((a) => a.filter(Boolean));
@@ -3890,12 +3898,11 @@ function buildAtlas(onProgress) {
 }
 
 const HEX_ROWS = 4, HEX_COLS = 7;
-function classifyCell(ctx, atlas) {
-  const buf = grayNorm(ctx, ATLAS_N, ATLAS_N);
-  if (buf.variance < 80) return null; // empty hex (low texture)
-  let best = null, bestScore = -2;
-  for (const a of atlas) { const s = ncc(buf, a.buf); if (s > bestScore) { bestScore = s; best = a.champ; } }
-  return bestScore >= 0.34 ? { champ: best, score: bestScore } : null;
+// 한 버퍼를 아틀라스 전체와 NCC — 1·2등 점수로 마진까지 반환(오인식 억제).
+function classifyBuf(buf, atlas) {
+  let best = null, bestScore = -2, second = -2;
+  for (const a of atlas) { const s = ncc(buf, a.buf); if (s > bestScore) { second = bestScore; bestScore = s; best = a.champ; } else if (s > second) { second = s; } }
+  return { champ: best, score: bestScore, margin: bestScore - second, variance: buf.variance };
 }
 
 function LiveOverlay() {
@@ -3908,6 +3915,7 @@ function LiveOverlay() {
   const [sim, setSim] = useState(null);
   const [auto, setAuto] = useState(false);
   const [status, setStatus] = useState('');
+  const [dbg, setDbg] = useState(null); // 인식 진단(아틀라스 수·최고 매칭 점수·채택 수)
   const [shopRect, setShopRect] = useState(() => store.get('shopRect', { x: 0.30, y: 0.88, w: 0.52, h: 0.10 }));
   const [shop, setShop] = useState([]);          // [{champ}|null] x5
   const [rec, setRec] = useState(null);          // liveRecommend result
@@ -3917,6 +3925,7 @@ function LiveOverlay() {
   const lastAiKeyRef = useRef(''); // 스테이지/레벨 바뀔 때만 자동 AI (예산 보호)
   const videoRef = useRef(null); const wrapRef = useRef(null);
   const atlasRef = useRef(null); const timerRef = useRef(null); const pipRef = useRef(null);
+  const dbgRef = useRef(null);
   const rectRef = useRef(rect); rectRef.current = rect;
   const shopRectRef = useRef(shopRect); shopRectRef.current = shopRect;
   const ctxRef = useRef({ gold, lvl, hp, stage }); ctxRef.current = { gold, lvl, hp, stage };
@@ -3945,24 +3954,34 @@ function LiveOverlay() {
     const bx = R.x * VW, by = R.y * VH, bw = R.w * VW, bh = R.h * VH;
     const cellW = bw / HEX_COLS, cellH = bh / HEX_ROWS;
     const cv = document.createElement('canvas'); cv.width = ATLAS_N; cv.height = ATLAS_N; const ctx = cv.getContext('2d', { willReadFrequently: true });
-    const out = [];
+    const DY = [-0.18, -0.10, -0.02], SC = [0.60, 0.72]; // 3D 모델이 헥스 위로 떠 보여 수직오프셋·스케일 탐색
+    let maxSeen = 0; const out = [];
     for (let row = 0; row < HEX_ROWS; row++) {
       const stagger = (row % 2 === 1) ? cellW * 0.5 : 0;
       for (let col = 0; col < HEX_COLS; col++) {
         const cx = bx + stagger + col * cellW + cellW * 0.5;
         const cy = by + row * cellH + cellH * 0.5;
-        const cropW = cellW * 0.62, cropH = cellH * 0.62;
-        const sx = cx - cropW / 2, sy = cy - cropH / 2 - cellH * 0.12; // model renders slightly above hex
-        if (sx < 0 || sy < 0 || sx + cropW > VW || sy + cropH > VH) continue;
-        ctx.clearRect(0, 0, ATLAS_N, ATLAS_N);
-        try { ctx.drawImage(v, sx, sy, cropW, cropH, 0, 0, ATLAS_N, ATLAS_N); } catch (e) { continue; }
-        const m = classifyCell(ctx, atlas);
-        if (m) out.push({ champ: m.champ, star: 2, score: m.score, idx: row * HEX_COLS + col, row });
+        let bestCell = null;
+        for (let si = 0; si < SC.length; si++) for (let di = 0; di < DY.length; di++) {
+          const cropW = cellW * SC[si], cropH = cellH * SC[si];
+          const sx = cx - cropW / 2, sy = cy - cropH / 2 + cellH * DY[di];
+          if (sx < 0 || sy < 0 || sx + cropW > VW || sy + cropH > VH) continue;
+          ctx.clearRect(0, 0, ATLAS_N, ATLAS_N);
+          try { ctx.drawImage(v, sx, sy, cropW, cropH, 0, 0, ATLAS_N, ATLAS_N); } catch (e) { continue; }
+          const buf = feat(ctx, ATLAS_N, ATLAS_N);
+          if (buf.variance < EMPTY_VAR) continue;
+          const m = classifyBuf(buf, atlas);
+          if (!bestCell || m.score > bestCell.score) bestCell = m;
+        }
+        if (bestCell && bestCell.score > maxSeen) maxSeen = bestCell.score;
+        if (bestCell && bestCell.score >= MATCH_MIN && bestCell.margin >= MATCH_MARGIN) out.push({ champ: bestCell.champ, star: 2, score: bestCell.score, idx: row * HEX_COLS + col, row });
       }
     }
     // dedupe same champ (keep best score)
     const byKey = {}; out.forEach((u) => { if (!byKey[u.champ.key] || u.score > byKey[u.champ.key].score) byKey[u.champ.key] = u; });
-    return Object.values(byKey).slice(0, 10);
+    const result = Object.values(byKey).slice(0, 10);
+    dbgRef.current = { atlas: atlas.length, max: +maxSeen.toFixed(2), accepted: result.length };
+    return result;
   }
 
   function sampleShop() {
@@ -3970,15 +3989,22 @@ function LiveOverlay() {
     const R = shopRectRef.current; const VW = v.videoWidth, VH = v.videoHeight;
     const bx = R.x * VW, by = R.y * VH, bw = R.w * VW, bh = R.h * VH; const slotW = bw / 5;
     const cv = document.createElement('canvas'); cv.width = ATLAS_N; cv.height = ATLAS_N; const ctx = cv.getContext('2d', { willReadFrequently: true });
+    const SC = [0.56, 0.68, 0.80]; // 상점은 2D 초상화라 매칭이 더 잘 됨 — 스케일만 탐색
     const out = [];
     for (let i = 0; i < 5; i++) {
       const cx = bx + i * slotW + slotW * 0.5, cy = by + bh * 0.45;
-      const cropW = slotW * 0.6, cropH = bh * 0.66, sx = cx - cropW / 2, sy = cy - cropH / 2;
-      if (sx < 0 || sy < 0 || sx + cropW > VW || sy + cropH > VH) { out.push(null); continue; }
-      ctx.clearRect(0, 0, ATLAS_N, ATLAS_N);
-      try { ctx.drawImage(v, sx, sy, cropW, cropH, 0, 0, ATLAS_N, ATLAS_N); } catch (e) { out.push(null); continue; }
-      const m = classifyCell(ctx, atlas);
-      out.push(m ? { champ: m.champ, score: m.score } : null);
+      let bestSlot = null;
+      for (let si = 0; si < SC.length; si++) {
+        const cropW = slotW * SC[si], cropH = bh * 0.66, sx = cx - cropW / 2, sy = cy - cropH / 2;
+        if (sx < 0 || sy < 0 || sx + cropW > VW || sy + cropH > VH) continue;
+        ctx.clearRect(0, 0, ATLAS_N, ATLAS_N);
+        try { ctx.drawImage(v, sx, sy, cropW, cropH, 0, 0, ATLAS_N, ATLAS_N); } catch (e) { continue; }
+        const buf = feat(ctx, ATLAS_N, ATLAS_N);
+        if (buf.variance < EMPTY_VAR) continue;
+        const m = classifyBuf(buf, atlas);
+        if (!bestSlot || m.score > bestSlot.score) bestSlot = m;
+      }
+      out.push((bestSlot && bestSlot.score >= MATCH_MIN && bestSlot.margin >= MATCH_MARGIN) ? { champ: bestSlot.champ, score: bestSlot.score } : null);
     }
     return out;
   }
@@ -4022,8 +4048,10 @@ function LiveOverlay() {
     const detected = sampleCells(); setBoard(detected);
     const shopDet = sampleShop(); setShop(shopDet);
     compute(detected, shopDet);
+    setDbg(dbgRef.current);
     const shopN = shopDet.filter(Boolean).length;
-    setStatus(detected.length ? `보드 ${detected.length}기 · 상점 ${shopN}칸 인식 — 순방 추천 계산됨 (오인식은 보드에서 클릭 제거)` : '인식 실패 — 박스를 보드/상점에 더 정확히 맞춰보세요.');
+    const dx = dbgRef.current || {};
+    setStatus(detected.length ? `보드 ${detected.length}기 · 상점 ${shopN}칸 인식 — 순방 추천 계산됨 (오인식은 보드에서 클릭 제거)` : `인식 실패 — 빨간 박스를 내 보드(4x7)에 더 정확히 맞추고 다시 [승률 읽기]. (최고 매칭 ${dx.max != null ? dx.max : '-'} / 채택 임계 ${MATCH_MIN})`);
   }
   function removeUnit(key) { setBoard((b) => { const nb = b.filter((u) => u.champ.key !== key); compute(nb, shop); return nb; }); }
 
@@ -4094,11 +4122,12 @@ function LiveOverlay() {
         <div className="empty" style={{ padding: '24px 16px' }}>
           <div className="ico"><Icon name="target" size={26} /></div>
           <div style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>게임 화면(전체 화면)을 공유하세요</div>
-          <div style={{ fontSize: 12, marginTop: 6, maxWidth: 520, margin: '6px auto 0' }}>TFT를 <b>테두리 없는 창모드</b>로 두고 [게임 화면 연결] → 모니터 선택. 화면을 <b>읽기만</b> 하고 조작하지 않습니다. 인식이 완벽하진 않아 감지된 보드를 보고 보정하세요. localhost(npm run dev)에서만 동작.</div>
+          <div style={{ fontSize: 12, marginTop: 6, maxWidth: 520, margin: '6px auto 0' }}>TFT를 <b>테두리 없는 창모드</b>로 두고 [게임 화면 연결] → 모니터 선택. 화면을 <b>읽기만</b> 하고 조작하지 않습니다. 인식이 완벽하진 않아(보드는 3D 모델이라 어려움) 감지된 보드를 보고 보정하세요. https 또는 localhost에서 동작.</div>
         </div>
       ) : (
         <div className="grid" style={{ gap: 10 }}>
           {!atlasState.ready && <div className="muted" style={{ fontSize: 12 }}>챔피언 인식 데이터 로딩… {atlasState.n}/{atlasState.total || RAW.champions.length}</div>}
+          {dbg && <div className="muted" style={{ fontSize: 11 }}>🔍 인식 진단: 아틀라스 {dbg.atlas}종 · 최고 매칭 <b style={{ color: dbg.max >= MATCH_MIN ? 'var(--pos)' : 'var(--warn)' }}>{dbg.max}</b> · 채택 {dbg.accepted}기 (임계 {MATCH_MIN}) — 인식 안 되면 이 숫자를 알려주세요</div>}
           <div ref={wrapRef} style={{ position: 'relative', width: '100%', borderRadius: 10, overflow: 'hidden', background: '#000', lineHeight: 0 }}>
             <video ref={videoRef} muted playsInline style={{ width: '100%', display: 'block', maxHeight: 300, objectFit: 'contain' }} />
             <div onPointerDown={(e) => dragBox('board', e, 'move')} style={{ position: 'absolute', left: rect.x * 100 + '%', top: rect.y * 100 + '%', width: rect.w * 100 + '%', height: rect.h * 100 + '%', border: '2px solid var(--neg)', boxShadow: '0 0 0 1px rgba(0,0,0,.6)', cursor: 'move', borderRadius: 4 }}>
